@@ -642,17 +642,48 @@ const DEMO_LEADS = [
 ];
 
 // ── LOGIN ──
-function sendMagicLink() {
+async function sendMagicLink() {
   const email = document.getElementById('login-email').value.trim();
   if (!email || !email.includes('@')) {
     showToast('Please enter a valid email.', 'error');
     return;
   }
-  document.getElementById('sent-email').textContent = email;
-  document.getElementById('login-form-wrap').style.display = 'none';
-  document.getElementById('magic-sent').style.display = 'block';
-  // In production: call Supabase Auth magic link endpoint
-  showToast('Magic link sent!', 'success');
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/magiclink`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({
+        email: email,
+        options: {
+          emailRedirectTo: 'https://app.piloguru.com'
+        }
+      })
+    });
+
+    if (res.ok || res.status === 200) {
+      document.getElementById('sent-email').textContent = email;
+      document.getElementById('login-form-wrap').style.display = 'none';
+      document.getElementById('magic-sent').style.display = 'block';
+      showToast('Magic link sent!', 'success');
+    } else {
+      const err = await res.json();
+      showToast('Error: ' + (err.msg || 'Could not send link.'), 'error');
+      btn.disabled = false;
+      btn.textContent = 'Send Magic Link';
+    }
+  } catch(e) {
+    showToast('Connection error. Try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Send Magic Link';
+  }
 }
 
 function enterDemo() {
