@@ -830,15 +830,12 @@ window.addEventListener('load', () => {
         twilio_number: '+17868894919',
         pilot_start: new Date()
       };
-      allLeads = [];
       document.getElementById('screen-login').classList.remove('active');
       document.getElementById('screen-dashboard').classList.add('active');
       document.getElementById('agent-name-display').textContent = currentAgent.name;
       document.getElementById('agent-avatar').textContent = currentAgent.name[0].toUpperCase();
-      renderLeads(allLeads);
-      updateMetrics(allLeads);
-      populatePropertyForm();
       setPilotDates();
+      loadAgentData(email);
       // Limpiar token de la URL
       window.history.replaceState({}, document.title, '/');
       showToast('Welcome back!', 'success');
@@ -854,13 +851,61 @@ function decodeJWT(token) {
     return null;
   }
 }
-// In production: load real leads from Supabase
-// async function loadLeads(propertyId) {
-//   const res = await fetch(`${SUPABASE_URL}/rest/v1/leads?property_id=eq.${propertyId}&order=created_at.desc`, {
-//     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-//   });
-//   return await res.json();
-// }
+// ── CARGAR DATOS REALES DESDE SUPABASE ──
+async function loadAgentData(email) {
+  try {
+    // 1. Buscar propiedad del agente
+    const resProp = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?agent_email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const properties = await resProp.json();
+
+    if (!properties.length) {
+      showToast('No property found for this account.', 'error');
+      return;
+    }
+
+    const property = properties[0];
+
+    // Actualizar UI con datos reales de la propiedad
+    document.getElementById('prop-number').textContent = property.twilio_number || 'Pending assignment';
+    document.getElementById('p-address').value  = property.address || '';
+    document.getElementById('p-beds').value     = property.bedrooms || '';
+    document.getElementById('p-baths').value    = property.bathrooms || '';
+    document.getElementById('p-area').value     = property.area_sqft || '';
+    document.getElementById('p-year').value     = property.year_built || '';
+    document.getElementById('p-price').value    = property.price || '';
+    document.getElementById('p-rent').value     = property.rent_price || '';
+    document.getElementById('p-type').value     = property.service_type || 'sale';
+    document.getElementById('p-features').value = property.features || '';
+    document.getElementById('p-poi').value      = property.poi || '';
+    document.getElementById('p-agent').value    = property.agent_name || '';
+    document.getElementById('p-email').value    = property.agent_email || '';
+    document.getElementById('p-active').value   = property.active ? 'true' : 'false';
+
+    // 2. Buscar leads de esa propiedad
+    const resLeads = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?property_id=eq.${property.id}&order=created_at.desc`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const leads = await resLeads.json();
+
+    allLeads = leads;
+    renderLeads(allLeads);
+    updateMetrics(allLeads);
+
+    // Actualizar subtítulo con dirección
+    document.getElementById('leads-subtitle').textContent =
+      `Calls captured for ${property.address}`;
+
+    showToast(`Loaded ${leads.length} lead${leads.length !== 1 ? 's' : ''}.`, 'success');
+
+  } catch(e) {
+    console.error('Error loading agent data:', e);
+    showToast('Error loading your data. Try again.', 'error');
+  }
+}
 </script>
 </body>
 </html>
