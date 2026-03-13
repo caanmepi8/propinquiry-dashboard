@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropInquiry — Agent Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#171b26;--surface2:#1e2333;--border:#272d3f;
+  --gold:#e8b84b;--gold-dim:#c49a35;--white:#f0eff8;--muted:#6b7394;
+  --green:#2eb87a;--amber:#e8943a;--red:#e85a4a;--blue:#4a8fe8;
+  --text:#d4d3e8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+
+/* ── SCREEN SYSTEM ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex}
+
+/* ══════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════ */
+#screen-login{
+  align-items:center;justify-content:center;
+  background:var(--bg);position:relative;overflow:hidden;
+}
+.login-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 50% at 50% 40%,rgba(232,184,75,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.login-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(39,45,63,.4) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(39,45,63,.4) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;
+}
+.login-box{
+  position:relative;z-index:1;width:100%;max-width:420px;padding:24px;
+}
+.login-logo{
+  font-family:'DM Serif Display',serif;font-size:26px;color:var(--white);
+  margin-bottom:48px;text-align:center;
+}
+.login-logo span{color:var(--gold)}
+.login-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:40px;
+}
+.login-card h2{
+  font-family:'DM Serif Display',serif;font-size:24px;
+  color:var(--white);margin-bottom:8px;font-weight:400;
+}
+.login-card p{font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.6}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:500}
+.field input{
+  width:100%;padding:13px 16px;background:var(--bg);border:1px solid var(--border);
+  color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;
+  transition:border-color .2s;
+}
+.field input:focus{border-color:var(--gold)}
+.field input::placeholder{color:var(--muted)}
+.btn-gold{
+  width:100%;padding:14px;background:var(--gold);color:var(--bg);
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+  border:none;cursor:pointer;transition:all .2s;letter-spacing:.3px;
+}
+.btn-gold:hover{background:var(--gold-dim)}
+.btn-gold:disabled{opacity:.5;cursor:not-allowed}
+.login-note{font-size:12px;color:var(--muted);text-align:center;margin-top:20px;line-height:1.6}
+
+/* Magic link sent state */
+.magic-sent{display:none;text-align:center;padding:16px 0}
+.magic-sent .icon{font-size:40px;margin-bottom:16px;display:block}
+.magic-sent h3{font-family:'DM Serif Display',serif;font-size:22px;color:var(--white);margin-bottom:8px}
+.magic-sent p{font-size:13px;color:var(--muted);line-height:1.7}
+.magic-sent .demo-btn{
+  display:inline-block;margin-top:20px;padding:10px 24px;
+  border:1px solid var(--border);color:var(--muted);font-size:13px;
+  cursor:pointer;background:none;transition:all .2s;
+}
+.magic-sent .demo-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ══════════════════════════════════════
+   MAIN DASHBOARD
+══════════════════════════════════════ */
+#screen-dashboard{flex-direction:row}
+
+/* SIDEBAR */
+.sidebar{
+  width:220px;flex-shrink:0;background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:28px 0;position:fixed;top:0;left:0;bottom:0;z-index:10;
+}
+.sidebar-logo{
+  font-family:'DM Serif Display',serif;font-size:20px;color:var(--white);
+  padding:0 24px 28px;border-bottom:1px solid var(--border);
+}
+.sidebar-logo span{color:var(--gold)}
+.sidebar-logo small{display:block;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.nav-items{padding:20px 0;flex:1}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 24px;font-size:13px;color:var(--muted);
+  cursor:pointer;transition:all .2s;border-left:2px solid transparent;
+}
+.nav-item:hover{color:var(--white);background:rgba(232,184,75,.04)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(232,184,75,.06)}
+.nav-item .ni{font-size:15px;width:20px;text-align:center}
+.sidebar-bottom{padding:20px 24px;border-top:1px solid var(--border)}
+.agent-pill{
+  display:flex;align-items:center;gap:10px;
+}
+.agent-avatar{
+  width:32px;height:32px;background:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Serif Display',serif;font-size:14px;color:var(--bg);flex-shrink:0;
+}
+.agent-info .name{font-size:13px;color:var(--white);font-weight:500}
+.agent-info .plan{font-size:10px;color:var(--green);letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace}
+
+/* MAIN CONTENT */
+.main{margin-left:220px;flex:1;padding:36px 40px;min-height:100vh}
+
+/* PAGE HEADER */
+.page-header{margin-bottom:32px}
+.page-header h1{font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);font-weight:400;margin-bottom:4px}
+.page-header p{font-size:14px;color:var(--muted)}
+
+/* TABS */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:32px}
+.tab{
+  padding:10px 20px;font-size:13px;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;
+  margin-bottom:-1px;
+}
+.tab:hover{color:var(--white)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* TAB PANELS */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.metric{background:var(--surface);border:1px solid var(--border);padding:24px}
+.metric .mlabel{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace}
+.metric .mval{font-family:'DM Serif Display',serif;font-size:36px;color:var(--white);line-height:1}
+.metric .mval.green{color:var(--green)}
+.metric .mval.amber{color:var(--amber)}
+.metric .mval.red{color:var(--red)}
+.metric .msub{font-size:11px;color:var(--muted);margin-top:8px}
+
+/* ── LEADS TABLE ── */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.section-title{font-size:13px;font-weight:600;color:var(--white);letter-spacing:.3px}
+.filter-row{display:flex;gap:8px}
+.filter-btn{
+  padding:6px 14px;font-size:11px;border:1px solid var(--border);
+  background:none;color:var(--muted);cursor:pointer;transition:all .2s;
+  font-family:'DM Mono',monospace;letter-spacing:1px;
+}
+.filter-btn:hover{border-color:var(--gold);color:var(--gold)}
+.filter-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(232,184,75,.06)}
+
+.leads-table{width:100%;border-collapse:collapse}
+.leads-table th{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);padding:10px 12px;
+  text-align:left;border-bottom:1px solid var(--border);
+}
+.leads-table td{
+  padding:14px 12px;border-bottom:1px solid rgba(39,45,63,.6);
+  font-size:13px;color:var(--text);vertical-align:middle;
+}
+.leads-table tr:hover td{background:rgba(232,184,75,.02)}
+.leads-table tr:last-child td{border-bottom:none}
+
+.status-dot{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;
+}
+.status-dot::before{
+  content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;
+}
+.status-dot.caliente{color:var(--green)}
+.status-dot.caliente::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.tibio{color:var(--amber)}
+.status-dot.tibio::before{background:var(--amber)}
+.status-dot.frio{color:var(--muted)}
+.status-dot.frio::before{background:var(--muted)}
+
+.phone-link{color:var(--gold);text-decoration:none;font-family:'DM Mono',monospace;font-size:12px}
+.phone-link:hover{text-decoration:underline}
+
+.transcript-btn{
+  padding:5px 12px;font-size:10px;border:1px solid var(--border);
+  background:none;color:var(--muted);cursor:pointer;transition:all .2s;
+  font-family:'DM Mono',monospace;letter-spacing:1px;
+}
+.transcript-btn:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ── PROPERTY PANEL ── */
+.property-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.prop-card{background:var(--surface);border:1px solid var(--border);padding:28px}
+.prop-card h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--white);margin-bottom:20px;font-weight:400}
+.form-field{margin-bottom:16px}
+.form-field label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-family:'DM Mono',monospace}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);
+  color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;
+  transition:border-color .2s;resize:vertical;
+}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold)}
+.form-field select option{background:var(--surface)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-save{
+  padding:11px 28px;background:var(--gold);color:var(--bg);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+  border:none;cursor:pointer;transition:all .2s;margin-top:8px;
+}
+.btn-save:hover{background:var(--gold-dim)}
+.btn-danger{
+  padding:11px 20px;background:none;color:var(--red);
+  font-family:'DM Sans',sans-serif;font-size:13px;
+  border:1px solid rgba(232,90,74,.3);cursor:pointer;transition:all .2s;margin-top:8px;margin-left:8px;
+}
+.btn-danger:hover{background:rgba(232,90,74,.1)}
+
+/* Number status card */
+.number-card{
+  background:var(--bg);border:1px solid var(--border);
+  padding:20px;margin-bottom:20px;
+}
+.number-card .nlabel{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace}
+.number-card .nval{font-family:'DM Mono',monospace;font-size:24px;color:var(--gold);letter-spacing:2px}
+.number-card .nstatus{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)}
+.number-card .nstatus::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* ── BILLING PANEL ── */
+.billing-card{background:var(--surface);border:1px solid var(--border);padding:32px;margin-bottom:20px}
+.billing-card h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--white);margin-bottom:20px;font-weight:400}
+.plan-badge{
+  display:inline-block;padding:4px 12px;
+  background:rgba(46,184,122,.1);border:1px solid rgba(46,184,122,.3);
+  color:var(--green);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;
+  margin-bottom:16px;
+}
+.billing-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px}
+.billing-row:last-child{border-bottom:none}
+.billing-row .blabel{color:var(--muted)}
+.billing-row .bval{color:var(--white);font-weight:500}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:100;align-items:center;justify-content:center;padding:24px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  width:100%;max-width:560px;max-height:80vh;overflow-y:auto;
+}
+.modal-header{
+  padding:24px 28px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-header h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--white);font-weight:400}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:0;line-height:1}
+.modal-close:hover{color:var(--white)}
+.modal-body{padding:24px 28px}
+.transcript-text{
+  font-size:13px;color:var(--text);line-height:1.8;
+  background:var(--bg);padding:16px;border:1px solid var(--border);
+  white-space:pre-wrap;
+}
+.modal-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.meta-item .mlb{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace}
+.meta-item .mvl{font-size:14px;color:var(--white)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:200;
+  background:var(--surface2);border:1px solid var(--border);
+  padding:14px 20px;font-size:13px;color:var(--white);
+  transform:translateY(80px);opacity:0;transition:all .3s;
+  display:flex;align-items:center;gap:10px;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .eicon{font-size:40px;margin-bottom:16px;opacity:.4}
+.empty-state p{font-size:14px;line-height:1.7}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.metric{animation:fadeIn .4s ease both}
+.metric:nth-child(2){animation-delay:.05s}
+.metric:nth-child(3){animation-delay:.1s}
+.metric:nth-child(4){animation-delay:.15s}
+
+@media(max-width:900px){
+  .sidebar{width:60px}
+  .sidebar-logo,.nav-item span,.sidebar-bottom .agent-info,.sidebar-logo small{display:none}
+  .nav-item{padding:14px;justify-content:center}
+  .main{margin-left:60px;padding:24px 20px}
+  .metrics{grid-template-columns:1fr 1fr}
+  .property-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="screen-login" class="screen active">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-box">
+    <div class="login-logo">Prop<span>Inquiry</span></div>
+    <div class="login-card">
+      <div id="login-form-wrap">
+        <h2>Agent Portal</h2>
+        <p>Enter your email and we'll send you a magic link — no password needed.</p>
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" id="login-email" placeholder="you@brokerage.com"/>
+        </div>
+        <button class="btn-gold" id="login-btn" onclick="sendMagicLink()">Send Magic Link</button>
+        <p class="login-note">For the demo, use any email and click "Enter Demo" below.<br>
+          <button onclick="enterDemo()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:12px;margin-top:8px;text-decoration:underline;">
+            → Enter Demo Dashboard
+          </button>
+        </p>
+      </div>
+      <div class="magic-sent" id="magic-sent">
+        <span class="icon">✉️</span>
+        <h3>Check your inbox.</h3>
+        <p>We sent a magic link to <strong id="sent-email"></strong>.<br>
+        Click the link in that email to access your dashboard.</p>
+        <button class="demo-btn" onclick="enterDemo()">Enter demo instead →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD SCREEN ══ -->
+<div id="screen-dashboard" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      Prop<span>Inq</span>
+      <small>Agent Portal</small>
+    </div>
+    <nav class="nav-items">
+      <div class="nav-item active" onclick="showTab('leads')" id="nav-leads">
+        <span class="ni">📊</span><span>Leads</span>
+      </div>
+      <div class="nav-item" onclick="showTab('property')" id="nav-property">
+        <span class="ni">🏠</span><span>Property</span>
+      </div>
+      <div class="nav-item" onclick="showTab('billing')" id="nav-billing">
+        <span class="ni">💳</span><span>Billing</span>
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="agent-pill">
+        <div class="agent-avatar" id="agent-avatar">M</div>
+        <div class="agent-info">
+          <div class="name" id="agent-name-display">Max Martin</div>
+          <div class="plan">Free Pilot</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- LEADS TAB -->
+    <div class="tab-panel active" id="panel-leads">
+      <div class="page-header">
+        <h1>Your Leads</h1>
+        <p id="leads-subtitle">All inbound calls captured by PropInquiry</p>
+      </div>
+
+      <!-- METRICS -->
+      <div class="metrics">
+        <div class="metric">
+          <div class="mlabel">Total Calls</div>
+          <div class="mval" id="m-total">0</div>
+          <div class="msub">All time</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Hot Leads</div>
+          <div class="mval green" id="m-hot">0</div>
+          <div class="msub">Requested contact</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Warm Leads</div>
+          <div class="mval amber" id="m-warm">0</div>
+          <div class="msub">Showed interest</div>
+        </div>
+        <div class="metric">
+          <div class="mlabel">Cold Leads</div>
+          <div class="mval" id="m-cold">0</div>
+          <div class="msub">Not interested</div>
+        </div>
+      </div>
+
+      <!-- FILTER + TABLE -->
+      <div class="section-header">
+        <div class="section-title">All Leads</div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterLeads('all', this)">All</button>
+          <button class="filter-btn" onclick="filterLeads('caliente', this)">Hot</button>
+          <button class="filter-btn" onclick="filterLeads('tibio', this)">Warm</button>
+          <button class="filter-btn" onclick="filterLeads('frio', this)">Cold</button>
+        </div>
+      </div>
+
+      <table class="leads-table" id="leads-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Duration</th>
+            <th>Transcript</th>
+          </tr>
+        </thead>
+        <tbody id="leads-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="leads-empty" style="display:none">
+        <div class="eicon">📞</div>
+        <p>No leads yet.<br>Calls will appear here within seconds of hanging up.</p>
+      </div>
+    </div>
+
+    <!-- PROPERTY TAB -->
+    <div class="tab-panel" id="panel-property">
+      <div class="page-header">
+        <h1>Your Property</h1>
+        <p>Edit your listing details — changes apply to the next incoming call.</p>
+      </div>
+
+      <!-- NUMBER CARD -->
+      <div class="number-card">
+        <div class="nlabel">Your Dedicated Number</div>
+        <div class="nval" id="prop-number">+1 (786) 889-4919</div>
+        <div class="nstatus">Active — AI is answering calls</div>
+      </div>
+
+      <div class="property-grid">
+        <div class="prop-card">
+          <h3>Listing Details</h3>
+          <div class="form-field">
+            <label>Property Address</label>
+            <input type="text" id="p-address" placeholder="123 Palm Ave, Miami, FL 33101"/>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Bedrooms</label>
+              <input type="number" id="p-beds" placeholder="3"/>
+            </div>
+            <div class="form-field">
+              <label>Bathrooms</label>
+              <input type="number" id="p-baths" placeholder="2"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Area (sqft)</label>
+              <input type="number" id="p-area" placeholder="1850"/>
+            </div>
+            <div class="form-field">
+              <label>Year Built</label>
+              <input type="number" id="p-year" placeholder="2005"/>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Service Type</label>
+            <select id="p-type">
+              <option value="sale">For Sale</option>
+              <option value="rent">For Rent</option>
+              <option value="both">Sale or Rent</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Sale Price ($)</label>
+              <input type="number" id="p-price" placeholder="450000"/>
+            </div>
+            <div class="form-field">
+              <label>Rent Price ($/mo)</label>
+              <input type="number" id="p-rent" placeholder="2800"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-card">
+          <h3>Details for AI</h3>
+          <div class="form-field">
+            <label>Key Features</label>
+            <textarea id="p-features" rows="3" placeholder="Renovated kitchen, pool, lake views, vaulted ceilings..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Nearby Points of Interest</label>
+            <textarea id="p-poi" rows="2" placeholder="0.5mi to Whole Foods, 2mi to I-95, 10min to beach..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Agent Name</label>
+            <input type="text" id="p-agent" placeholder="Your full name"/>
+          </div>
+          <div class="form-field">
+            <label>Notification Email</label>
+            <input type="email" id="p-email" placeholder="you@brokerage.com"/>
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <select id="p-active">
+              <option value="true">Active — AI answering calls</option>
+              <option value="false">Paused — Not answering</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn-save" onclick="saveProperty()">Save Changes</button>
+            <button class="btn-danger" onclick="confirmPause()">Pause Listing</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BILLING TAB -->
+    <div class="tab-panel" id="panel-billing">
+      <div class="page-header">
+        <h1>Billing</h1>
+        <p>Your current plan and usage.</p>
+      </div>
+      <div class="billing-card">
+        <h3>Current Plan</h3>
+        <div class="plan-badge">FREE PILOT — 30 DAYS</div>
+        <div class="billing-row">
+          <span class="blabel">Plan</span>
+          <span class="bval">Free Pilot</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Active numbers</span>
+          <span class="bval">1</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Pilot started</span>
+          <span class="bval" id="pilot-date">—</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Pilot ends</span>
+          <span class="bval" id="pilot-end">—</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Cost this period</span>
+          <span class="bval" style="color:var(--green)">$0.00</span>
+        </div>
+      </div>
+      <div class="billing-card">
+        <h3>After Your Pilot</h3>
+        <div class="billing-row">
+          <span class="blabel">Starter (1 number)</span>
+          <span class="bval">$29/month</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Growth (up to 5 numbers)</span>
+          <span class="bval">$99/month</span>
+        </div>
+        <div class="billing-row">
+          <span class="blabel">Team (unlimited)</span>
+          <span class="bval">$249/month</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
+          Pricing goes live after your pilot ends. Your account manager will reach out to set up payment.
+        </p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TRANSCRIPT MODAL -->
+<div class="modal-overlay" id="transcript-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Call Transcript</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta">
+        <div class="meta-item"><div class="mlb">Caller</div><div class="mvl" id="modal-caller">—</div></div>
+        <div class="meta-item"><div class="mlb">Phone</div><div class="mvl" id="modal-phone">—</div></div>
+        <div class="meta-item"><div class="mlb">Status</div><div class="mvl" id="modal-status">—</div></div>
+        <div class="meta-item"><div class="mlb">Duration</div><div class="mvl" id="modal-duration">—</div></div>
+      </div>
+      <div class="transcript-text" id="modal-transcript"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+let currentAgent = null;
+let allLeads = [];
+let currentFilter = 'all';
+
+// Demo data
+const DEMO_AGENT = {
+  name: 'Max Martin',
+  email: 'max@realty.com',
+  property_id: 'demo-001',
+  twilio_number: '+17868894919',
+  pilot_start: new Date()
+};
+
+const DEMO_LEADS = [
+  {id:1, caller_name:'Sarah Johnson', caller_number:'+13055551234', status:'caliente', created_at:'2026-03-10T14:32:00Z', duration_seconds:187, transcript:'Caller asked about the kitchen renovation and pool. Very interested in scheduling a viewing. Requested agent contact. Name: Sarah Johnson.'},
+  {id:2, caller_name:'Robert Kim', caller_number:'+13055559876', status:'caliente', created_at:'2026-03-09T18:15:00Z', duration_seconds:203, transcript:'Caller inquired about price and HOA fees. Asked about school district. Confirmed interest in agent callback. Name: Robert Kim.'},
+  {id:3, caller_name:null, caller_number:'+17865554321', status:'tibio', created_at:'2026-03-09T11:04:00Z', duration_seconds:94, transcript:'Caller asked about lake views and parking. Listened to details but declined agent contact.'},
+  {id:4, caller_name:null, caller_number:'+13059998877', status:'frio', created_at:'2026-03-08T20:45:00Z', duration_seconds:22, transcript:'Caller not interested in more details after initial introduction.'},
+  {id:5, caller_name:'Diana Cruz', caller_number:'+17863337777', status:'caliente', created_at:'2026-03-07T09:20:00Z', duration_seconds:241, transcript:'Caller asked about investment potential and rental estimate. Very interested. Requested agent contact. Name: Diana Cruz.'},
+];
+
+// ── LOGIN ──
+function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email.', 'error');
+    return;
+  }
+  document.getElementById('sent-email').textContent = email;
+  document.getElementById('login-form-wrap').style.display = 'none';
+  document.getElementById('magic-sent').style.display = 'block';
+  // In production: call Supabase Auth magic link endpoint
+  showToast('Magic link sent!', 'success');
+}
+
+function enterDemo() {
+  currentAgent = DEMO_AGENT;
+  allLeads = DEMO_LEADS;
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-dashboard').classList.add('active');
+  document.getElementById('agent-name-display').textContent = DEMO_AGENT.name;
+  document.getElementById('agent-avatar').textContent = DEMO_AGENT.name[0];
+  renderLeads(allLeads);
+  updateMetrics(allLeads);
+  populatePropertyForm();
+  setPilotDates();
+}
+
+// ── NAVIGATION ──
+function showTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+}
+
+// ── METRICS ──
+function updateMetrics(leads) {
+  document.getElementById('m-total').textContent = leads.length;
+  document.getElementById('m-hot').textContent = leads.filter(l => l.status === 'caliente').length;
+  document.getElementById('m-warm').textContent = leads.filter(l => l.status === 'tibio').length;
+  document.getElementById('m-cold').textContent = leads.filter(l => l.status === 'frio').length;
+}
+
+// ── LEADS TABLE ──
+function renderLeads(leads) {
+  const tbody = document.getElementById('leads-tbody');
+  const empty = document.getElementById('leads-empty');
+
+  if (!leads.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = leads.map(lead => {
+    const date = new Date(lead.created_at);
+    const dateStr = date.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    const dur = lead.duration_seconds ? Math.floor(lead.duration_seconds / 60) + 'm ' + (lead.duration_seconds % 60) + 's' : '—';
+    const name = lead.caller_name || '<span style="color:var(--muted)">Unknown</span>';
+    const statusMap = {caliente: 'HOT', tibio: 'WARM', frio: 'COLD'};
+    return `<tr>
+      <td style="font-weight:500;color:var(--white)">${name}</td>
+      <td><a href="tel:${lead.caller_number}" class="phone-link">${lead.caller_number}</a></td>
+      <td><span class="status-dot ${lead.status}">${statusMap[lead.status] || lead.status}</span></td>
+      <td style="color:var(--muted);font-size:12px">${dateStr}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${dur}</td>
+      <td><button class="transcript-btn" onclick="openTranscript(${lead.id})">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLeads(status, btn) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = status === 'all' ? allLeads : allLeads.filter(l => l.status === status);
+  renderLeads(filtered);
+}
+
+// ── TRANSCRIPT MODAL ──
+function openTranscript(id) {
+  const lead = allLeads.find(l => l.id === id);
+  if (!lead) return;
+  document.getElementById('modal-caller').textContent = lead.caller_name || 'Unknown';
+  document.getElementById('modal-phone').textContent = lead.caller_number;
+  document.getElementById('modal-status').textContent = lead.status.toUpperCase();
+  document.getElementById('modal-duration').textContent = lead.duration_seconds ? lead.duration_seconds + 's' : '—';
+  document.getElementById('modal-transcript').textContent = lead.transcript || 'No transcript available.';
+  document.getElementById('transcript-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('transcript-modal').classList.remove('open');
+}
+document.getElementById('transcript-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── PROPERTY FORM ──
+function populatePropertyForm() {
+  // In production: load from Supabase using agent's property_id
+  document.getElementById('p-address').value = '6817 Barnwell Dr, Boynton Beach, FL 33437';
+  document.getElementById('p-beds').value = '3';
+  document.getElementById('p-baths').value = '2';
+  document.getElementById('p-area').value = '2100';
+  document.getElementById('p-year').value = '2018';
+  document.getElementById('p-price').value = '450000';
+  document.getElementById('p-rent').value = '2800';
+  document.getElementById('p-type').value = 'both';
+  document.getElementById('p-agent').value = 'Max Martin';
+  document.getElementById('p-email').value = 'max@realty.com';
+  document.getElementById('p-features').value = 'Renovated kitchen with granite countertops, mesh-covered patio with lake views, vaulted ceilings, crown molding';
+  document.getElementById('p-poi').value = '0.5mi to Publix, 5min to I-95, A-rated schools';
+  document.getElementById('prop-number').textContent = DEMO_AGENT.twilio_number;
+}
+
+function saveProperty() {
+  // In production: PATCH to Supabase properties table
+  showToast('Property updated successfully.', 'success');
+}
+
+function confirmPause() {
+  if (confirm('Pause this listing? The AI will stop answering calls until you reactivate.')) {
+    showToast('Listing paused. You can reactivate anytime.', 'success');
+  }
+}
+
+// ── BILLING DATES ──
+function setPilotDates() {
+  const start = new Date();
+  const end = new Date(start);
+  end.setDate(end.getDate() + 30);
+  const fmt = d => d.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  document.getElementById('pilot-date').textContent = fmt(start);
+  document.getElementById('pilot-end').textContent = fmt(end);
+}
+
+// ── TOAST ──
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// In production: load real leads from Supabase
+// async function loadLeads(propertyId) {
+//   const res = await fetch(`${SUPABASE_URL}/rest/v1/leads?property_id=eq.${propertyId}&order=created_at.desc`, {
+//     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+//   });
+//   return await res.json();
+// }
+</script>
+</body>
+</html>
