@@ -816,7 +816,44 @@ function showToast(msg, type = 'success') {
   t.className = 'toast ' + type + ' show';
   setTimeout(() => t.classList.remove('show'), 3000);
 }
+// ── MAGIC LINK HANDLER ──
+window.addEventListener('load', () => {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    const email = decodeJWT(accessToken);
+    if (email) {
+      currentAgent = {
+        name: email.split('@')[0],
+        email: email,
+        twilio_number: '+17868894919',
+        pilot_start: new Date()
+      };
+      allLeads = [];
+      document.getElementById('screen-login').classList.remove('active');
+      document.getElementById('screen-dashboard').classList.add('active');
+      document.getElementById('agent-name-display').textContent = currentAgent.name;
+      document.getElementById('agent-avatar').textContent = currentAgent.name[0].toUpperCase();
+      renderLeads(allLeads);
+      updateMetrics(allLeads);
+      populatePropertyForm();
+      setPilotDates();
+      // Limpiar token de la URL
+      window.history.replaceState({}, document.title, '/');
+      showToast('Welcome back!', 'success');
+    }
+  }
+});
 
+function decodeJWT(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || null;
+  } catch(e) {
+    return null;
+  }
+}
 // In production: load real leads from Supabase
 // async function loadLeads(propertyId) {
 //   const res = await fetch(`${SUPABASE_URL}/rest/v1/leads?property_id=eq.${propertyId}&order=created_at.desc`, {
